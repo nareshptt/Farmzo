@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "808422672981",
+    "project_id": "farmzo-6aec9",
+    "storage_bucket": "farmzo-6aec9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:808422672981:android:ae6359d752435bb192e2dc",
+        "android_client_info": {
+          "package_name": "com.example.farmzo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBm5AcjQFUjL5SLKHPAFC7X5k5TzWTaYYg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
