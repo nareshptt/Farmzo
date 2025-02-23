@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../Widget/BottomNavigation.dart';
+import '../Widget/AuthWrapper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 60),
                     Text(
                       '🌱 Welcome',
                       style: TextStyle(
@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen>
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     const Text(
                       'તમારા ખેતી અનુભવને વધુ સારો બનાવવા માટે લૉગિન કરો',
                       style: TextStyle(
@@ -59,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 70),
                     Container(
                       padding: EdgeInsets.all(containerPadding),
                       width: width > 600 ? 500 : double.infinity,
@@ -67,12 +67,12 @@ class _LoginScreenState extends State<LoginScreen>
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2,
+                            blurRadius: 12,
+                            spreadRadius: 5,
                             offset: const Offset(0, 4),
                           ),
                         ],
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(35),
                         color: Colors.white,
                       ),
                       child: Column(
@@ -82,23 +82,42 @@ class _LoginScreenState extends State<LoginScreen>
                             child: ElevatedButton(
                               onPressed: () async {
                                 try {
+                                  // Check if the user is already signed in
+                                  if (await _googleSignIn.isSignedIn()) {
+                                    // Disconnect the user to force the account picker
+                                    await _googleSignIn.signOut();
+                                  }
+
+                                  // Trigger the Google Sign-In process
                                   final GoogleSignInAccount? googleUser =
                                       await _googleSignIn.signIn();
-                                  final GoogleSignInAuthentication? googleAuth =
-                                      await googleUser?.authentication;
 
+                                  if (googleUser == null) {
+                                    // User canceled the sign-in
+                                    return;
+                                  }
+
+                                  // Get the authentication details
+                                  final GoogleSignInAuthentication googleAuth =
+                                      await googleUser.authentication;
+
+                                  // Create the credential for Firebase Auth
                                   final credential =
                                       GoogleAuthProvider.credential(
-                                    accessToken: googleAuth?.accessToken,
-                                    idToken: googleAuth?.idToken,
+                                    accessToken: googleAuth.accessToken,
+                                    idToken: googleAuth.idToken,
                                   );
 
+                                  // Sign in to Firebase
                                   await _auth.signInWithCredential(credential);
+
+                                  // Navigate to the next screen (AuthWrapper in this case)
                                   Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              BottomNavigation()));
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AuthWrapper(),
+                                    ),
+                                  );
                                 } catch (e) {
                                   print(e.toString());
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -110,31 +129,39 @@ class _LoginScreenState extends State<LoginScreen>
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
+                                backgroundColor: const Color(0xFF4285F4),
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(35),
                                 ),
                                 padding: EdgeInsets.symmetric(
                                     vertical: buttonPadding),
-                                elevation: 5,
+                                elevation: 8,
+                                textStyle: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.login, color: Colors.white),
-                                  SizedBox(width: 10),
-                                  Text(
+                                  // Google logo from assets
+                                  Image.asset(
+                                    'assets/Google.png', // Path to your asset
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
                                     'Google દ્વારા સાઇન ઇન કરો',
                                     style: TextStyle(
-                                        fontSize: 18,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
                         ],
                       ),
                     ),

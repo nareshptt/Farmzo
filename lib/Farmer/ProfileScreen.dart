@@ -84,17 +84,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Enhanced Profile Header
   Widget _buildProfileHeader(double screenWidth) {
     return Center(
       child: Column(
         children: [
+          // Profile Picture with Gradient Border
           CircleAvatar(
-            radius: screenWidth * 0.2, // Making the avatar size responsive
+            radius: screenWidth * 0.2, // Responsive size
             backgroundImage: _user?.photoURL != null
                 ? NetworkImage(_user!.photoURL!)
                 : AssetImage("assets/default_profile.png") as ImageProvider,
+            backgroundColor: Colors.green[200],
           ),
           const SizedBox(height: 10),
+          // User Name with larger font and bold style
           Text(
             _user?.displayName ?? "વપરાશકર્તા",
             style: TextStyle(
@@ -103,6 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Colors.white,
             ),
           ),
+          const SizedBox(height: 5),
           if (_user?.phoneNumber != null)
             Text(
               _user!.phoneNumber!,
@@ -116,6 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Profile options with ListTiles
   Widget _buildProfileOptions() {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -131,34 +137,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => AddShopdata(
-                            shopId: '',
-                          )));
+                      builder: (context) => AddShopdata(shopId: '')));
             } else {
+              // Navigate to Orders
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => AddShopdata(
-                            shopId: '',
-                          )));
+                      builder: (context) => AddShopdata(shopId: '')));
             }
           },
         ),
-        _buildOptionTile(Icons.logout, "લૉગઆઉટ", _logout),
+        _buildOptionTile(
+          Icons.logout,
+          "લૉગઆઉટ",
+          _logout,
+          isLogout: true, // Customization for logout
+        ),
       ],
     );
   }
 
-  Widget _buildOptionTile(IconData icon, String title, VoidCallback onTap) {
+  // Build each profile option
+  Widget _buildOptionTile(IconData icon, String title, VoidCallback onTap,
+      {bool isLogout = false}) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 5,
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      elevation: 6,
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      color: isLogout ? Colors.redAccent : Colors.white, // Highlight logout
       child: ListTile(
-        leading: Icon(icon, color: Colors.green, size: 30),
+        leading:
+            Icon(icon, color: isLogout ? Colors.white : Colors.green, size: 30),
         title: Text(
           title,
-          style: const TextStyle(fontSize: 18, color: Colors.black87),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500, // Bold font weight for title
+            color: isLogout ? Colors.white : Colors.black87,
+          ),
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: onTap,

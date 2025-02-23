@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:farmzo/Agro/HomeScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +32,7 @@ class _AddShopdataState extends State<AddShopdata> {
   Future<void> _fetchVillages() async {
     try {
       final snapshot =
-          await FirebaseFirestore.instance.collection('villages').get();
+          await FirebaseFirestore.instance.collection('Villages').get();
       setState(() {
         _villageNames =
             snapshot.docs.map((doc) => doc['name'] as String).toList();
@@ -106,8 +107,17 @@ class _AddShopdataState extends State<AddShopdata> {
     // Upload the image and get the URL
     String imageUrl = await _uploadImage();
 
-    // Get the current user's email
+    // Get the current user's UID and Email
+    String? userUID = FirebaseAuth.instance.currentUser?.uid;
     String? userEmail = FirebaseAuth.instance.currentUser?.email;
+
+    if (userUID == null || userEmail == null) {
+      // If either UID or email is null, that means the user is not logged in
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Please log in to save your shop data.'),
+      ));
+      return;
+    }
 
     // Save the data to Firestore
     await FirebaseFirestore.instance.collection('shops').add({
@@ -115,7 +125,8 @@ class _AddShopdataState extends State<AddShopdata> {
       'village': _selectedVillage, // Village name from dropdown
       'image': imageUrl,
       'createdAt': Timestamp.now(),
-      'userEmail': userEmail, // Current user's email
+      'userUID': userUID, // Current user's UID
+      'userEmail': userEmail, // Current user's Email
     });
 
     // Show a success message
@@ -129,6 +140,12 @@ class _AddShopdataState extends State<AddShopdata> {
       _image = null;
       _selectedVillage = null;
     });
+
+    // Navigate to AgroHome and prevent going back
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AgroHome()),
+    );
   }
 
   @override
@@ -235,7 +252,7 @@ class _AddShopdataState extends State<AddShopdata> {
   // Image Picker Section with Responsive Layout
   Widget _buildImagePicker(double width) {
     return Container(
-      width: width * 0.9, // Responsive width
+      width: width * 0.50, // Responsive width
       height: 150,
       decoration: BoxDecoration(
         color: Colors.grey[300],

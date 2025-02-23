@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../Agro/HomeScreen.dart';
 import '../Authentication/LoginScreen.dart';
 import 'BottomNavigation.dart';
 
@@ -21,11 +23,47 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (snapshot.hasData && snapshot.data != null) {
-          return BottomNavigation(); // User is logged in → Show Home
+          User? user = snapshot.data;
+
+          // Check if the user is a shop owner
+          return FutureBuilder<bool>(
+            future: _checkIfUserIsShopOwner(
+                user!.uid), // Check if the current user is a shop owner
+            builder: (context, shopSnapshot) {
+              if (shopSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (shopSnapshot.data == true) {
+                return AgroHome(); // If the user is a shop owner, show AgroHome
+              } else {
+                return BottomNavigation(); // If not a shop owner, show BottomNavigation
+              }
+            },
+          );
         } else {
-          return LoginScreen(); // User not logged in → Show Login
+          return LoginScreen(); // If no user is logged in, show LoginScreen
         }
       },
     );
+  }
+
+  // Function to check if the current user is a shop owner by comparing userUID
+  Future<bool> _checkIfUserIsShopOwner(String userUID) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('shops')
+          .where('userUID',
+              isEqualTo:
+                  userUID) // Ensure the shop document has a userUID field
+          .get();
+
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking if user is a shop owner: $e');
+      return false;
+    }
   }
 }
