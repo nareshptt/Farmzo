@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../Widget/AuthWrapper.dart';
+import '../Widget/theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -68,11 +69,11 @@ class _LoginScreenState extends State<LoginScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
             behavior: SnackBarBehavior.floating,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            margin: EdgeInsets.all(12),
+            margin: const EdgeInsets.all(12),
           ),
         );
       }
@@ -92,14 +93,15 @@ class _LoginScreenState extends State<LoginScreen>
         builder: (context, constraints) {
           double width = constraints.maxWidth;
           double padding = width > 600 ? 40 : 20;
-          double textSize = width > 600 ? 36 : 28;
-          double buttonPadding = width > 600 ? 16 : 12;
-          double containerPadding = width > 600 ? 35 : 25;
+          double containerPadding = width > 600 ? 30 : 24;
 
           return Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [const Color(0xFF00A86B), const Color(0xFF007F5F)],
+                colors: [
+                  AppTheme.primaryColor,
+                  AppTheme.primaryDarkColor,
+                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -129,41 +131,35 @@ class _LoginScreenState extends State<LoginScreen>
 
                       Text(
                         '🌱 Welcome',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: textSize,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTheme.headingStyle,
+                        textAlign: TextAlign.center,
                       ),
 
                       const SizedBox(height: 12),
 
-                      const Text(
+                      Text(
                         'Sign in to enhance your farming experience',
-                        style: TextStyle(
+                        style: AppTheme.bodyStyle.copyWith(
                           color: Colors.white,
-                          fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                         textAlign: TextAlign.center,
                       ),
 
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 50),
 
                       Container(
                         padding: EdgeInsets.all(containerPadding),
-                        width: width > 600 ? 500 : double.infinity,
-                        decoration: BoxDecoration(
+                        width: width > 600 ? 450 : double.infinity,
+                        decoration: AppTheme.cardDecoration.copyWith(
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.15),
                               blurRadius: 16,
-                              spreadRadius: 3,
+                              spreadRadius: 2,
                               offset: const Offset(0, 6),
                             ),
                           ],
-                          borderRadius: BorderRadius.circular(24),
-                          color: Colors.white,
                         ),
                         child: Column(
                           children: [
@@ -176,15 +172,11 @@ class _LoginScreenState extends State<LoginScreen>
                                   backgroundColor: const Color(0xFF4285F4),
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  padding: EdgeInsets.symmetric(
-                                      vertical: buttonPadding),
-                                  elevation: 4,
-                                  textStyle: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  elevation: 1,
                                 ),
                                 child: _isLoading
                                     ? const SizedBox(
@@ -212,9 +204,10 @@ class _LoginScreenState extends State<LoginScreen>
                                             ),
                                           ),
                                           const SizedBox(width: 12),
-                                          const Text(
+                                          Text(
                                             'Sign in with Google',
-                                            style: TextStyle(
+                                            style: AppTheme.bodyStyle.copyWith(
+                                              color: Colors.white,
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -229,10 +222,7 @@ class _LoginScreenState extends State<LoginScreen>
                             // Privacy policy text
                             Text(
                               'By signing in, you agree to our Privacy Policy and Terms of Service.',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                              ),
+                              style: AppTheme.captionStyle,
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -253,9 +243,8 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(width: 8),
                           Text(
                             'Secure and Safe',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 14,
+                            style: AppTheme.captionStyle.copyWith(
+                              color: Colors.white.withOpacity(0.9),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
