@@ -17,32 +17,29 @@ class AddShopdata extends StatefulWidget {
 
 class _AddShopdataState extends State<AddShopdata> {
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
   String? _selectedVillage;
+  String? _selectedCategory;
   XFile? _image;
   bool _isUploading = false;
   bool _isLoading = true;
   List<String> _villageNames = [];
+  List<String> _categoryNames = [];
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
     _fetchVillages();
+    _fetchCategories();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchVillages() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
       final snapshot =
           await FirebaseFirestore.instance.collection('Villages').get();
@@ -50,13 +47,35 @@ class _AddShopdataState extends State<AddShopdata> {
         _villageNames =
             snapshot.docs.map((doc) => doc['name'] as String).toList();
         _villageNames.sort(); // Sort villages alphabetically
-        _isLoading = false;
       });
     } catch (e) {
       print('Error fetching village names: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error loading villages. Please try again.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('Categories').get();
+      setState(() {
+        _categoryNames =
+            snapshot.docs.map((doc) => doc['Categorie'] as String).toList();
+        _categoryNames.sort(); // Sort categories alphabetically
+        _isLoading = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading categories. Please try again.'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -294,7 +313,7 @@ class _AddShopdataState extends State<AddShopdata> {
       await FirebaseFirestore.instance.collection('shops').add({
         'name': _nameController.text.trim(),
         'village': _selectedVillage,
-        'phone': _phoneController.text.trim(),
+        'category': _selectedCategory,
         'image': imageUrl,
         'createdAt': Timestamp.now(),
         'userUID': userUID,
@@ -509,25 +528,33 @@ class _AddShopdataState extends State<AddShopdata> {
             ),
             SizedBox(height: 16),
 
-            // Phone Number Field
-            TextFormField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
+            // Category Dropdown (replaced phone number field)
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              items: _categoryNames.map((category) {
+                return DropdownMenuItem<String>(
+                  value: category,
+                  child: Text(category),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedCategory = newValue;
+                });
+              },
               decoration: _buildInputDecoration(
-                labelText: 'Phone Number',
-                hintText: 'Enter contact number',
-                prefixIcon: Icons.phone,
+                labelText: 'Category',
+                hintText: 'Select shop category',
+                prefixIcon: Icons.category,
               ),
               validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter phone number';
-                }
-                // Simple phone validation - can be enhanced
-                if (value.trim().length < 10) {
-                  return 'Please enter a valid phone number';
+                if (value == null || value.isEmpty) {
+                  return 'Please select a category';
                 }
                 return null;
               },
+              isExpanded: true,
+              icon: Icon(Icons.arrow_drop_down, color: Colors.green),
             ),
           ],
         ),

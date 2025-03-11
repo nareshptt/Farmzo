@@ -14,15 +14,89 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String selectedVillage = 'All'; // Default selection
+  String selectedCategory = 'Fertilizers'; // Changed default to Fertilizers
   List<String> villages = [];
   List<Map<String, dynamic>> allShops = [];
   List<Map<String, dynamic>> filteredShops = [];
+  List<Map<String, dynamic>> categories = [];
   bool isLoading = true;
+  bool isCategoriesLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _fetchCategories(); // First fetch categories
     _fetchShopData();
+  }
+
+  // Fetch categories from Firestore
+  Future<void> _fetchCategories() async {
+    setState(() {
+      isCategoriesLoading = true;
+    });
+
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('Categories').get();
+
+      if (snapshot.docs.isEmpty) {
+        // Fallback to default categories if none found in Firestore
+        setState(() {
+          categories = [
+            {'name': 'Seeds', 'icon': Icons.spa_rounded},
+            {'name': 'Fertilizers', 'icon': Icons.science_rounded},
+          ];
+          isCategoriesLoading = false;
+        });
+        return;
+      }
+
+      List<Map<String, dynamic>> fetchedCategories = snapshot.docs.map((doc) {
+        final data = doc.data();
+        // Map the icon string to the corresponding Icons class
+        IconData iconData =
+            _getIconFromString(data['icon'] ?? 'science_rounded');
+
+        return {
+          'id': doc.id,
+          'name': data['Categorie'] ?? 'Unknown',
+          'icon': iconData,
+        };
+      }).toList();
+
+      setState(() {
+        categories = fetchedCategories;
+        // Update selected category if the default is not available
+        if (categories.isNotEmpty &&
+            !categories.any((cat) => cat['name'] == selectedCategory)) {
+          selectedCategory = categories[0]['name'];
+        }
+        isCategoriesLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching categories: $e');
+      // Fallback to default categories on error
+      setState(() {
+        categories = [
+          {'name': 'Seeds', 'icon': Icons.spa_rounded},
+          {'name': 'Fertilizers', 'icon': Icons.science_rounded},
+        ];
+        isCategoriesLoading = false;
+      });
+    }
+  }
+
+  // Helper method to convert string to IconData
+  IconData _getIconFromString(String iconName) {
+    switch (iconName) {
+      case 'spa_rounded':
+        return Icons.spa_rounded;
+      case 'science_rounded':
+        return Icons.science_rounded;
+
+      default:
+        return Icons.category; // Default icon
+    }
   }
 
   Future<void> _fetchShopData() async {
@@ -44,12 +118,14 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       List<Map<String, dynamic>> shops = snapshot.docs.map((doc) {
+        final data = doc.data();
         return {
           'id': doc.id,
-          'shopImage': doc['image'] ?? 'default_image_url',
-          'shopName': doc['name'] ?? 'Unknown Shop',
-          'villageName': doc['village'] ?? 'Unknown Village',
-          'fertilizerStatus': doc['fertilizerStatus'] ?? 'Unknown',
+          'shopImage': data['image'] ?? 'default_image_url',
+          'shopName': data['name'] ?? 'Unknown Shop',
+          'villageName': data['village'] ?? 'Unknown Village',
+          'fertilizerStatus': data['fertilizerStatus'] ?? 'Unknown',
+          'category': data['category'] ?? 'Fertilizers',
         };
       }).toList();
 
@@ -60,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         allShops = shops;
-        filteredShops = allShops;
+        _applyFilters(); // Apply initial filters
         isLoading = false;
       });
     } catch (e) {
@@ -73,16 +149,39 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _filterShops(String village) {
-    setState(() {
-      selectedVillage = village;
-      if (village == 'All') {
-        filteredShops = allShops;
-      } else {
-        filteredShops =
-            allShops.where((shop) => shop['villageName'] == village).toList();
-      }
-    });
+  // Apply both village and category filters
+  void _applyFilters() {
+    if (selectedVillage == 'All') {
+      // Filter by category only
+      filteredShops = allShops
+          .where((shop) => shop['category'] == selectedCategory)
+          .toList();
+    } else {
+      // Filter by both village and category
+      filteredShops = allShops
+          .where((shop) =>
+              shop['villageName'] == selectedVillage &&
+              shop['category'] == selectedCategory)
+          .toList();
+    }
+  }
+
+  void _selectVillage(String village) {
+    if (selectedVillage != village) {
+      setState(() {
+        selectedVillage = village;
+        _applyFilters();
+      });
+    }
+  }
+
+  void _selectCategory(String category) {
+    if (selectedCategory != category) {
+      setState(() {
+        selectedCategory = category;
+        _applyFilters();
+      });
+    }
   }
 
   @override
@@ -91,13 +190,19 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: _buildAppBar(),
       body: RefreshIndicator(
-        onRefresh: _fetchShopData,
+        onRefresh: () async {
+          await _fetchCategories();
+          await _fetchShopData();
+        },
         color: AppTheme.primaryColor,
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
               child: _buildVillageFilter(),
+            ),
+            SliverToBoxAdapter(
+              child: _buildCategoriesRow(),
             ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -155,7 +260,138 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Build Categories Row Widget
+  Widget _buildCategoriesRow() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      height: 120,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.category,
+                  color: AppTheme.primaryColor,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Categories',
+                  style: AppTheme.subtitleStyle,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: isCategoriesLoading
+                ? _buildCategoriesShimmer()
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      final bool isSelected =
+                          selectedCategory == category['name'];
+
+                      return GestureDetector(
+                        onTap: () => _selectCategory(category['name']),
+                        child: Container(
+                          width: 80,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isSelected
+                                    ? AppTheme.primaryColor.withOpacity(0.4)
+                                    : Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                height: 40,
+                                width: 40,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppTheme.primaryLightColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  category['icon'],
+                                  color: isSelected
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.primaryDarkColor,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                category['name'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Shimmer effect for categories while loading
+  Widget _buildCategoriesShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 80,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   PreferredSizeWidget _buildAppBar() {
+    // AppBar implementation remains the same
     return AppBar(
       backgroundColor: AppTheme.primaryColor,
       elevation: 0,
@@ -204,6 +440,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildVillageFilter() {
+    // Village filter implementation remains the same
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 24, 20, 8),
       decoration: AppTheme.cardDecoration,
@@ -238,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 value: selectedVillage,
                 onChanged: (String? newValue) {
                   if (newValue != null) {
-                    _filterShops(newValue);
+                    _selectVillage(newValue);
                   }
                 },
                 isExpanded: true,
@@ -270,59 +507,63 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
+    // Empty state implementation remains the same
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            height: 140,
-            width: 140,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryLightColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
-                  spreadRadius: 2,
-                  blurRadius: 20,
-                ),
-              ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 140,
+              width: 140,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLightColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    spreadRadius: 2,
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.store_outlined,
+                size: 70,
+                color: AppTheme.accentColor,
+              ),
             ),
-            child: Icon(
-              Icons.store_outlined,
-              size: 70,
-              color: AppTheme.accentColor,
+            const SizedBox(height: 28),
+            Text(
+              'No shops found',
+              style: AppTheme.titleStyle,
             ),
-          ),
-          const SizedBox(height: 28),
-          Text(
-            'No shops found',
-            style: AppTheme.titleStyle,
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              selectedVillage == 'All'
-                  ? 'There are no shops available at the moment'
-                  : 'No shops found in $selectedVillage',
-              style: AppTheme.captionStyle,
-              textAlign: TextAlign.center,
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                selectedVillage != 'All'
+                    ? 'No ${selectedCategory} shops found in $selectedVillage'
+                    : 'No ${selectedCategory} shops available',
+                style: AppTheme.captionStyle,
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: _fetchShopData,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Refresh'),
-            style: AppTheme.primaryButtonStyle,
-          ),
-        ],
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _fetchShopData,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Refresh'),
+              style: AppTheme.primaryButtonStyle,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildShimmerEffect() {
+    // Shimmer effect implementation remains the same
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
@@ -347,6 +588,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildShopCard(String shopId, String shopImage, String shopName,
       String villageName, String fertilizerStatus) {
+    // Shop card implementation remains the same
     final bool isFertilizerAvailable = fertilizerStatus == 'Available';
 
     return Container(
