@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -9,7 +10,107 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController otpController = TextEditingController();
+
+  String verificationId = "";
+  bool otpSent = false;
   bool isLoading = false;
+
+  final FirebaseAuth auth = FirebaseAuth.instance;
+
+  Future<void> sendOTP() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    await auth.verifyPhoneNumber(
+      phoneNumber: "+91${phoneController.text.trim()}",
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await auth.signInWithCredential(credential);
+      },
+
+      verificationFailed: (FirebaseAuthException e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? "Verification Failed")),
+        );
+      },
+
+      codeSent: (String verId, int? resendToken) {
+        setState(() {
+          verificationId = verId;
+          otpSent = true;
+        });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("OTP Sent")));
+      },
+
+      codeAutoRetrievalTimeout: (String verId) {
+        verificationId = verId;
+      },
+    );
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Future<void> verifyOTP() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otpController.text.trim(),
+      );
+
+      await auth.signInWithCredential(credential);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Login Successful")));
+
+      // Navigate to Bottom Navigation Screen
+      // Navigator.pushReplacement(...);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Invalid OTP")));
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Widget customField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    required TextInputType type,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8)],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: type,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          icon: Icon(icon, color: Colors.green),
+          hintText: hint,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,91 +119,63 @@ class _LoginScreenState extends State<LoginScreen> {
 
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(22),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 60),
-
               CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.green.shade100,
                 child: const Icon(
                   Icons.agriculture,
-                  size: 55,
                   color: Colors.green,
+                  size: 50,
                 ),
               ),
 
               const SizedBox(height: 20),
 
               const Text(
-                "Welcome to Farmzo",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                "Farmzo Login",
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 8),
 
               Text(
-                "Login with mobile number",
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                otpSent ? "Enter OTP" : "Login with mobile number",
+                style: TextStyle(color: Colors.grey.shade600),
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 35),
 
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(color: Colors.grey.shade200, blurRadius: 8),
-                  ],
-                ),
-                child: TextField(
+              if (!otpSent)
+                customField(
                   controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  maxLength: 10,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    counterText: "",
-                    prefixIcon: Icon(Icons.phone, color: Colors.green),
-                    hintText: "Enter mobile number",
-                  ),
+                  hint: "Enter Mobile Number",
+                  icon: Icons.phone,
+                  type: TextInputType.phone,
                 ),
-              ),
 
-              const SizedBox(height: 30),
+              if (otpSent)
+                customField(
+                  controller: otpController,
+                  hint: "Enter OTP",
+                  icon: Icons.lock,
+                  type: TextInputType.number,
+                ),
+
+              const SizedBox(height: 20),
 
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () {
-                    String phone = phoneController.text.trim();
-
-                    if (phone.length != 10) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Enter valid mobile number"),
-                        ),
-                      );
-                      return;
-                    }
-
-                    setState(() {
-                      isLoading = true;
-                    });
-
-                    Future.delayed(const Duration(seconds: 2), () {
-                      setState(() {
-                        isLoading = false;
-                      });
-                    });
-                  },
+                  onPressed: isLoading
+                      ? null
+                      : otpSent
+                      ? verifyOTP
+                      : sendOTP,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
@@ -112,18 +185,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Continue", style: TextStyle(fontSize: 17)),
+                      : Text(
+                          otpSent ? "Verify OTP" : "Send OTP",
+                          style: const TextStyle(fontSize: 17),
+                        ),
                 ),
               ),
-
-              const Spacer(),
-
-              Text(
-                "Helping Farmers Connect Easily 🌾",
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-              ),
-
-              const SizedBox(height: 20),
             ],
           ),
         ),

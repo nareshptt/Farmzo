@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "621810140620",
+    "firebase_url": "https://farmzo-26234-default-rtdb.firebaseio.com",
+    "project_id": "farmzo-26234",
+    "storage_bucket": "farmzo-26234.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:621810140620:android:0d7f45394ce8fd01574969",
+        "android_client_info": {
+          "package_name": "com.example.farmzo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDh7ItxrcbdVfsbkUdyqmBqgKkCWBfTHGE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

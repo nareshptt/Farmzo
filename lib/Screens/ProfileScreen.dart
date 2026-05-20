@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../Admin/AddServiceScreen.dart';
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -86,7 +88,12 @@ class ProfileScreen extends StatelessWidget {
                     height: 55,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Navigate to Add Service screen
+                        Navigator.pushReplacement(
+                          (context),
+                          MaterialPageRoute(
+                            builder: (context) => AddServiceScreen(),
+                          ),
+                        );
                       },
                       icon: const Icon(Icons.add_circle_outline),
                       label: const Text(
